@@ -123,7 +123,6 @@ client.on("messageReactionAdd", (reaction, user) => {
         reaction.emoji.name == msgData.emote ||
         reaction.emoji.id == msgData.emote
       ) {
-        console.log("WORKING BITCH");
         /*
      DONE!!! TODO: Check si l'id du message correspond a un id stocker.
             Si l'id correspond, check si c'est bien la bonne emote.
