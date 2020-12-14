@@ -25,7 +25,7 @@ client.on("message", async (message) => {
   // Creation de la commande
 
   // TODO: Example de commande: dodstartregister 🎃 "Pour vous inscrire mettez la reactions ci dessous." @Tournoi
-  if (command == "startregister") {
+  if (command == "startregister" && message.guild.member(message.author).hasPermission('ADMINISTRATOR')) {
     // TODO: Faire en sorte que la commande soit utilisable uniquement par les Administrateurs.
 
     function stopError() {
