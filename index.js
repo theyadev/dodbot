@@ -137,13 +137,13 @@ client.on("messageReactionAdd", (reaction, user) => {
           return reaction.message.guild
             .member(user)
             .roles.remove(role)
-            .then(user.send(`Le role "${role.name}" vous as été supprimé !`));
+            .then(user.send(`Le role "${role.name}" vous a été supprimé !`));
         // Ajoute le role choisis a la personne.
         else
           return reaction.message.guild
             .member(user)
             .roles.add(role)
-            .then(user.send(`Le role "${role.name}" vous as été ajouté !`));
+            .then(user.send(`Le role "${role.name}" vous a été ajouté !`));
         // TODO: Envoyer un message privé comme quoi le role a bien été ajouté.
       }
     }
@@ -174,12 +174,12 @@ client.on("messageReactionRemove", (reaction, user) => {
           return reaction.message.guild
             .member(user)
             .roles.remove(role)
-            .then(user.send(`Le role "${role.name}" vous as été supprimé !`));
+            .then(user.send(`Le role "${role.name}" vous a été supprimé !`));
         else
           return reaction.message.guild
             .member(user)
             .roles.add(role)
-            .then(user.send(`Le role "${role.name}" vous as été ajouté !`));
+            .then(user.send(`Le role "${role.name}" vous a été ajouté !`));
         // TODO: Envoyer un message privé comme quoi le role a bien été ajouté.
       }
     }
@@ -188,14 +188,14 @@ client.on("messageReactionRemove", (reaction, user) => {
 
 client.on("guildMemberUpdate", (old, newer) => {
   if (old.guild.id != "279999753884794880") return;
-  console.log("Old roles:");
+  /*console.log("Old roles:");
   old.roles.cache.forEach((role) =>
     role.name != "@everyone" ? console.log(role.name) : ""
   );
   console.log("New roles:");
   newer.roles.cache.forEach((role) =>
     role.name != "@everyone" ? console.log(role.name) : ""
-  );
+  );*/
 
   /*
     TODO: Si le nouveau role est rocketLeague alors ajouté un autre role.
