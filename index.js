@@ -1,16 +1,30 @@
 const Discord = require("discord.js");
 const fs = require("fs");
+const dotenv = require("dotenv");
+const monk = require("monk");
 const client = new Discord.Client({
   partials: ["MESSAGE", "CHANNEL", "REACTION"],
 });
 const { TOKEN, PREFIX } = require("./config.json");
 let emoji = "🎃";
-const MessagesRole = new Map(
-  Object.entries(JSON.parse(fs.readFileSync("./Messages.json", "utf-8")))
-);
+dotenv.config();
 
-client.on("ready", () => {
+const db = monk(process.env.MONGO_URI);
+const Messages = db.get("messages");
+
+let MessagesRole = new Map();
+
+client.on("ready", async () => {
   console.log(`Logged in as ${client.user.tag}`);
+  const x = await Messages.find();
+  if (x.length > 0) {
+    const y = {};
+    for (let i = 0; i < x.length; i++) {
+      y[x[i].messageId] = x[i];
+    }
+
+    MessagesRole = new Map(Object.entries(y));
+  } else MessagesRole = new Map();
 });
 
 client.on("message", async (message) => {
@@ -25,9 +39,11 @@ client.on("message", async (message) => {
   // Creation de la commande
 
   // TODO: Example de commande: dodstartregister 🎃 "Pour vous inscrire mettez la reactions ci dessous." @Tournoi
-  if (command == "startregister" && message.guild.member(message.author).hasPermission('ADMINISTRATOR')) {
+  if (
+    command == "startregister" &&
+    message.guild.member(message.author).hasPermission("ADMINISTRATOR")
+  ) {
     // TODO: Faire en sorte que la commande soit utilisable uniquement par les Administrateurs.
-
     function stopError() {
       message.reply(
         "le bot a besoin des arguments suivants: " +
@@ -100,8 +116,16 @@ client.on("message", async (message) => {
       endDate: endDate,
       guildId: messageReaction.guild.id,
     });
-    const obj = Object.fromEntries(MessagesRole);
-    fs.writeFileSync("./Messages.json", JSON.stringify(obj));
+
+    const created = await Messages.insert({
+      emote: emoji.id || emoji,
+      role: role,
+      endDate: endDate,
+      guildId: messageReaction.guild.id,
+      messageId: messageReaction.id,
+    });
+    console.log(created);
+    //fs.writeFileSync("./Messages.json", JSON.stringify(obj));
     /* 
      DONE!!! TODO: Stocker l'id du message dans un Set/Map/Collection avec l'id du role et l'emote que l'on veut mettre.
             Reagir avec l'emote choisis.
@@ -111,40 +135,76 @@ client.on("message", async (message) => {
     messageReaction.react(emoji);
     message.delete();
   }
+  if (
+    command == "stopregister" &&
+    message.guild.member(message.author).hasPermission("ADMINISTRATOR")
+  ) {
+    function stopError() {
+      message.reply("le bot a besoin des arguments suivants: " + " MESSAGE ID");
+    }
+    console.log(args);
+    if (args.length == 0) return stopError();
+
+    if (!MessagesRole.has(args[0]))
+      return message.reply(
+        "l'id indiqué n'est pas valide, ou alors n'appartient pas a un message tracké par le bot."
+      );
+
+    const x = MessagesRole.get(args[0]);
+    const Guild = client.guilds.cache.get(message.guild.id); // Getting the guild.
+    Guild.members.cache.forEach((user) => {
+      if (user.roles.cache.has(x.role)) user.roles.remove(x.role);
+    });
+
+    await Messages.remove({ messageId: x.messageId });
+
+    MessagesRole.delete(args[0]);
+
+    message.channel.send(
+      "__**LES INSCRIPTIONS POUR LE TOURNOI SONT TERMINÉES !**__"
+    );
+    message.delete();
+  }
 });
 
 client.on("messageReactionAdd", (reaction, user) => {
   // Verifie qu'il y a bien un user et que le message ne proviens pas des message privé. Ignore les bots.
-  if (user && !user.bot && reaction.message.channel.guild) {
-    const x = MessagesRole.has(reaction.message.id);
-    if (x) {
-      const msgData = MessagesRole.get(reaction.message.id);
-      if (
-        reaction.emoji.name == msgData.emote ||
-        reaction.emoji.id == msgData.emote
-      ) {
-        /*
+  if (
+    user &&
+    !user.bot &&
+    reaction.message.channel.guild &&
+    MessagesRole.has(reaction.message.id)
+  ) {
+    const msgData = MessagesRole.get(reaction.message.id);
+    if (
+      reaction.emoji.name == msgData.emote ||
+      reaction.emoji.id == msgData.emote
+    ) {
+      /*
      DONE!!! TODO: Check si l'id du message correspond a un id stocker.
             Si l'id correspond, check si c'est bien la bonne emote.
             Si l'emote correspond mettre le role a la personne.
     */
 
-        const role = reaction.message.guild.roles.cache.get(msgData.role);
+      const role = reaction.message.guild.roles.cache.get(msgData.role);
 
-        // Regarde si l'utilisateur a deja le role
-        if (reaction.message.guild.member(user).roles.cache.has(role.id))
-          return reaction.message.guild
-            .member(user)
-            .roles.remove(role)
-            .then(user.send(`Le role "${role.name}" vous a été supprimé !`));
-        // Ajoute le role choisis a la personne.
-        else
-          return reaction.message.guild
-            .member(user)
-            .roles.add(role)
-            .then(user.send(`Le role "${role.name}" vous a été ajouté !`));
-        // TODO: Envoyer un message privé comme quoi le role a bien été ajouté.
-      }
+      /*console.log(reaction.count);
+      if (reaction.count >= 1 && reaction.users.cache.has(client.user.id)) {
+        console.log("OUI");
+      }*/
+      // Regarde si l'utilisateur a deja le role
+      if (reaction.message.guild.member(user).roles.cache.has(role.id))
+        return reaction.message.guild
+          .member(user)
+          .roles.remove(role)
+          .then(user.send(`Le role "${role.name}" vous a été supprimé !`));
+      // Ajoute le role choisis a la personne.
+      else
+        return reaction.message.guild
+          .member(user)
+          .roles.add(role)
+          .then(user.send(`Le role "${role.name}" vous a été ajouté !`));
+      // TODO: Envoyer un message privé comme quoi le role a bien été ajouté.
     }
   }
 });
@@ -186,26 +246,36 @@ client.on("messageReactionRemove", (reaction, user) => {
 });
 
 client.on("guildMemberUpdate", (old, newer) => {
-  if (old.guild.id != "279999753884794880") return;
-  /*console.log("Old roles:");
-  old.roles.cache.forEach((role) =>
-    role.name != "@everyone" ? console.log(role.name) : ""
-  );
-  console.log("New roles:");
-  newer.roles.cache.forEach((role) =>
-    role.name != "@everyone" ? console.log(role.name) : ""
-  );*/
+  if (old.guild.id != "279999753884794880") return; // Serveur de Dios
+  //if (old.guild.id != "470335219128336385") return; // Serveur de Test
 
-  /*
-    TODO: Si le nouveau role est rocketLeague alors ajouté un autre role.
-    Si le old a deja le role rocketLeague ne rien faire.
-    Si il retire le role rocketLeague, retiré la categorie.
-  */
+  /*const roleId = "470335809019707393"
+  const channel = client.guilds.cache.get(old.guild.id).channels.cache.get("789245103864545311")*/ 
+  // Serveur de Test
+
+  const roleId = "782612409806356491"
+  const channel = client.guilds.cache.get(old.guild.id).channels.cache.get("475969379947773962")
+  // Serveur de Dios
+
+  // Creation de l'embed a envoyé
+  const embed = new Discord.MessageEmbed()
+  .setTimestamp(new Date())
+  .setAuthor(newer.user.tag, newer.user.avatarURL())
+
+  if (old.roles.cache.has(roleId) == true && newer.roles.cache.has(roleId) == false) {
+    embed.setColor(15158332)
+    embed.setDescription(`🔴 <@${newer.user.id}> à quitté le tournoi !`)
+    channel.send(embed)
+  } else {
+    embed.setColor(3066993)
+    embed.setDescription(`🟢 <@${newer.user.id}> à rejoins le tournoi !`)
+    channel.send(embed)
+  }
 });
 
 setInterval(() => {
   if (MessagesRole.size == 0) return;
-  MessagesRole.forEach((value, key, map) => {
+  MessagesRole.forEach(async (value, key, map) => {
     var varDate = new Date(value.endDate);
     var today = new Date();
 
@@ -217,9 +287,9 @@ setInterval(() => {
         if (user.roles.cache.has(value.role)) user.roles.remove(value.role);
       });
 
+      await Messages.remove({ messageId: value.messageId });
+
       MessagesRole.delete(key);
-      const obj = Object.fromEntries(MessagesRole);
-      fs.writeFileSync("./Messages.json", JSON.stringify(obj));
     }
   });
 }, 21600000);
