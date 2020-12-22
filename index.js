@@ -266,7 +266,7 @@ client.on("guildMemberUpdate", (old, newer) => {
     embed.setColor(15158332)
     embed.setDescription(`🔴 <@${newer.user.id}> à quitté le tournoi !`)
     channel.send(embed)
-  } else {
+  } else if (old.roles.cache.has(roleId) == false && newer.roles.cache.has(roleId) == true) {
     embed.setColor(3066993)
     embed.setDescription(`🟢 <@${newer.user.id}> à rejoins le tournoi !`)
     channel.send(embed)
