@@ -151,14 +151,22 @@ client.on("message", async (message) => {
       );
 
     const x = MessagesRole.get(args[0]);
-    const Guild = client.guilds.cache.get(message.guild.id); // Getting the guild.
+    /*const Guild = client.guilds.cache.get(message.guild.id); // Getting the guild.
     Guild.members.cache.forEach((user) => {
       if (user.roles.cache.has(x.role)) user.roles.remove(x.role);
+    });*/
+
+    await Messages.findOneAndUpdate(
+      { messageId: x.messageId },
+      { $set: { emote: "" } }
+    );
+
+    MessagesRole.set(x.messageId, {
+      emote: "",
+      endDate: x.endDate,
+      guildId: x.guildId,
+      messageId: x.messageId,
     });
-
-    await Messages.remove({ messageId: x.messageId });
-
-    MessagesRole.delete(args[0]);
 
     message.channel.send(
       "__**LES INSCRIPTIONS POUR LE TOURNOI SONT TERMINÉES !**__"
@@ -250,26 +258,34 @@ client.on("guildMemberUpdate", (old, newer) => {
   //if (old.guild.id != "470335219128336385") return; // Serveur de Test
 
   /*const roleId = "470335809019707393"
-  const channel = client.guilds.cache.get(old.guild.id).channels.cache.get("789245103864545311")*/ 
+  const channel = client.guilds.cache.get(old.guild.id).channels.cache.get("789245103864545311")*/
   // Serveur de Test
 
-  const roleId = "782612409806356491"
-  const channel = client.guilds.cache.get(old.guild.id).channels.cache.get("475969379947773962")
+  const roleId = "782612409806356491";
+  const channel = client.guilds.cache
+    .get(old.guild.id)
+    .channels.cache.get("475969379947773962");
   // Serveur de Dios
 
   // Creation de l'embed a envoyé
   const embed = new Discord.MessageEmbed()
-  .setTimestamp(new Date())
-  .setAuthor(newer.user.tag, newer.user.avatarURL())
+    .setTimestamp(new Date())
+    .setAuthor(newer.user.tag, newer.user.avatarURL());
 
-  if (old.roles.cache.has(roleId) == true && newer.roles.cache.has(roleId) == false) {
-    embed.setColor(15158332)
-    embed.setDescription(`🔴 <@${newer.user.id}> à quitté le tournoi !`)
-    channel.send(embed)
-  } else if (old.roles.cache.has(roleId) == false && newer.roles.cache.has(roleId) == true) {
-    embed.setColor(3066993)
-    embed.setDescription(`🟢 <@${newer.user.id}> à rejoins le tournoi !`)
-    channel.send(embed)
+  if (
+    old.roles.cache.has(roleId) == true &&
+    newer.roles.cache.has(roleId) == false
+  ) {
+    embed.setColor(15158332);
+    embed.setDescription(`🔴 <@${newer.user.id}> à quitté le tournoi !`);
+    channel.send(embed);
+  } else if (
+    old.roles.cache.has(roleId) == false &&
+    newer.roles.cache.has(roleId) == true
+  ) {
+    embed.setColor(3066993);
+    embed.setDescription(`🟢 <@${newer.user.id}> à rejoins le tournoi !`);
+    channel.send(embed);
   }
 });
 
@@ -286,6 +302,10 @@ setInterval(() => {
       Guild.members.cache.forEach((user) => {
         if (user.roles.cache.has(value.role)) user.roles.remove(value.role);
       });
+
+      if (value.guildId == 279999753884794880) {
+        const channel = client.channels.cache.get(782590868820721664);
+      }
 
       await Messages.remove({ messageId: value.messageId });
 
